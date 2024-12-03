@@ -3,19 +3,17 @@ import React, { useState, useEffect, useRef } from "react";
 const ChatBot = () => {
   const [messages, setMessages] = useState([]);
   const [userInput, setUserInput] = useState("");
-  const [suggestions, setSuggestions] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [currentMenu, setCurrentMenu] = useState("main");
-
+  const [currentMenu, setCurrentMenu] = useState("main"); // Tracks the current menu
   const chatContainerRef = useRef(null);
 
-  // Main Menu and Help options
+  // Main menu options
   const mainMenuOptions = [
-    { question: "Hi", answer: "Hello! How can I assist you today?" },
-    { question: "Help", answer: "Here are some options to help you:" },
-    { question: "Thank you", answer: "You're welcome! Let me know if you need anything else." },
+    { question: "Hi", response: "Hello! How can I assist you today?" },
+    { question: "Help", response: "Here are some options to help you:" },
+    { question: "Thank you", response: "You're welcome! Let me know if you need anything else." },
   ];
 
+  // Help menu options
   const helpMenuOptions = [
     { question: "How can I create an account?", answer: "You can create an account by signing up on our website. You'll need your apartment details to register." },
     { question: "I forgot my password, what should I do?", answer: "Click on the 'Forgot Password' link on the login page, and we'll guide you through the recovery process." },
@@ -27,60 +25,62 @@ const ChatBot = () => {
     { question: "Thank you", answer: "You're welcome! Let me know if you need anything else." },
   ];
 
-  // Scroll to the bottom of the chat container whenever messages change
+  // Scroll to the bottom of the chat whenever messages change
   useEffect(() => {
     if (chatContainerRef.current) {
       chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
     }
   }, [messages]);
 
-  // Show the initial message and main menu when the component first loads
-  useEffect(() => {
-    setMessages([
-      { sender: "bot", text: "Hello! How can I assist you today? Please choose an option." },
+  const handleMainMenu = () => {
+    setCurrentMenu("main");
+    setMessages((prevMessages) => [
+      ...prevMessages,
+      { sender: "bot", text: "You are back to the main menu. Here are your options:" },
     ]);
-    setSuggestions(mainMenuOptions);
-  }, []);
+  };
 
-  // Handle user input or button clicks to send messages
-  const handleMessage = (input) => {
+  const handleMessage = async (input) => {
     const userMessage = { sender: "user", text: input };
     setMessages((prevMessages) => [...prevMessages, userMessage]);
-    setUserInput("");
-    setLoading(true);
 
-    let botResponse = { sender: "bot", text: "" };
+    // Handle main menu inputs
+    if (currentMenu === "main") {
+      const selectedOption = mainMenuOptions.find((option) => option.question === input);
 
-    if (input === "Help") {
-      setCurrentMenu("help");
-      botResponse = { sender: "bot", text: "Here are some options to help you:" };
-      setSuggestions(helpMenuOptions); // Update suggestions to help menu options
-    } else if (input === "Hi") {
-      botResponse = { sender: "bot", text: "Hello! How can I assist you today?" };
-      setSuggestions(mainMenuOptions);
-    } else if (input === "Thank you") {
-      botResponse = { sender: "bot", text: "You're welcome! Let me know if you need anything else." };
-      setSuggestions(mainMenuOptions);
-    } else {
-      botResponse = { sender: "bot", text: "Sorry, I didn't understand that. Please select an option." };
+      if (selectedOption) {
+        setMessages((prevMessages) => [
+          ...prevMessages,
+          { sender: "bot", text: selectedOption.response },
+        ]);
+
+        if (input === "Help") {
+          setCurrentMenu("help");
+        }
+      } else {
+        setMessages((prevMessages) => [
+          ...prevMessages,
+          { sender: "bot", text: "Sorry, I didn't understand that. Please select an option." },
+        ]);
+      }
     }
 
-    setMessages((prevMessages) => [...prevMessages, botResponse]);
-    setLoading(false);
-  };
+    // Handle help menu inputs
+    else if (currentMenu === "help") {
+      const selectedOption = helpMenuOptions.find((option) => option.question === input);
 
-  // Handle selecting a suggestion from the menu
-  const handleSuggestionClick = (suggestion) => {
-    handleMessage(suggestion.question); // Treat button clicks as sending a message
-  };
-
-  // Return to the main menu
-  const handleBackToMainMenu = () => {
-    setMessages([
-      { sender: "bot", text: "You are back to the main menu. Please choose from the options below." },
-    ]);
-    setSuggestions(mainMenuOptions); // Reset to main menu options
-    setCurrentMenu("main");
+      if (selectedOption) {
+        setMessages((prevMessages) => [
+          ...prevMessages,
+          { sender: "bot", text: selectedOption.answer },
+        ]);
+      } else {
+        setMessages((prevMessages) => [
+          ...prevMessages,
+          { sender: "bot", text: "Sorry, I didn't understand that. Please select an option." },
+        ]);
+      }
+    }
   };
 
   return (
@@ -131,54 +131,51 @@ const ChatBot = () => {
             </p>
           </div>
         ))}
-        {loading && <p>Loading...</p>}
       </div>
 
-      {suggestions.length > 0 && (
-        <div
-          style={{
-            display: "flex",
-            flexWrap: "wrap",
-            gap: "10px",
-            marginBottom: "20px",
-          }}
-        >
-          {suggestions.map((suggestion, index) => (
-            <button
-              key={index}
-              onClick={() => handleSuggestionClick(suggestion)}
-              style={{
-                flex: "1 1 calc(50% - 10px)",
-                padding: "10px",
-                borderRadius: "8px",
-                backgroundColor: "#333",
-                color: "#fff",
-                border: "1px solid #444",
-                cursor: "pointer",
-              }}
-            >
-              {suggestion.question}
-            </button>
-          ))}
+      <div
+        style={{
+          display: "flex",
+          flexWrap: "wrap",
+          gap: "10px",
+          marginBottom: "20px",
+        }}
+      >
+        {(currentMenu === "main" ? mainMenuOptions : helpMenuOptions).map((option, index) => (
+          <button
+            key={index}
+            onClick={() => handleMessage(option.question)}
+            style={{
+              flex: "1 1 calc(50% - 10px)",
+              padding: "10px",
+              borderRadius: "8px",
+              backgroundColor: "#555", // Changed to grey
+              color: "#fff",
+              border: "1px solid #666",
+              cursor: "pointer",
+            }}
+          >
+            {option.question}
+          </button>
+        ))}
 
-          {currentMenu === "help" && (
-            <button
-              onClick={handleBackToMainMenu}
-              style={{
-                flex: "1 1 100%",
-                padding: "10px",
-                borderRadius: "8px",
-                backgroundColor: "#006400",
-                color: "#fff",
-                border: "1px solid #444",
-                cursor: "pointer",
-              }}
-            >
-              Back to Main Menu
-            </button>
-          )}
-        </div>
-      )}
+        {currentMenu !== "main" && (
+          <button
+            onClick={handleMainMenu}
+            style={{
+              flex: "1 1 calc(50% - 10px)",
+              padding: "10px",
+              borderRadius: "8px",
+              backgroundColor: "#555", // Changed to grey
+              color: "#fff",
+              border: "1px solid #666",
+              cursor: "pointer",
+            }}
+          >
+            Back to Main Menu
+          </button>
+        )}
+      </div>
 
       <div style={{ display: "flex", alignItems: "center" }}>
         <input
